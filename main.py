@@ -86,7 +86,6 @@ def Expand(a, delta, goal, a_m, bp, g, CLOSED):
                 continue
         if not line_of_sight(a, point):
             continue
-        # print(a, g[a], sep="<=")
         g[(point.x, point.y)] = g[(a.x, a.y)] + a.dist_to(point)
         open.append(point)
     return open
@@ -149,27 +148,36 @@ def LIAN(start, end, delta, a_m):
     OPEN.append(start)
 
     while len(OPEN) > 0:
-        s = sorted(OPEN, key=lambda x: x.priority)
         a = sorted(OPEN, key=lambda x: x.priority)[0]
-        # print(s[0], s[-1], len(OPEN))
         OPEN.remove(a)
-
+        
         if a == end:
-            # get pathFromParent
             print("Path found!")
-            return
+            bp[(a.x, a.y)] = current_point
+            cur_point = end
+            path = []
+            while cur_point != start:
+                path.append(cur_point)
+                cur_point = bp[(cur_point.x, cur_point.y)]
+            path.append(start)
+            path.reverse()
+            return bp
 
         CLOSE.append(a)
-        copy = cv.circle(image, (a.x, a.y), 5, (127,127,127), -1)
-        # image[a.y][a.x] = 127
-        plt.imshow(copy)
-        plt.get_current_fig_manager().full_screen_toggle()
-        plt.show()
-        
-        bp[(a.x, a.y)] = current_point
+        if current_point != a:
+            bp[(a.x, a.y)] = current_point
         OPEN.extend(Expand(a, delta, end, a_m, bp, g, CLOSE))
         current_point = a
 
+    
     print("Path not found :(")
 
-LIAN(start, end, 20, 25)
+
+path = LIAN(start, end, 20, 25)
+print(len(path))
+copy = image.copy()
+for x, y in path:
+    copy = cv.circle(copy, (x, y), 5, (127,127,127), -1)
+plt.imshow(copy)
+plt.get_current_fig_manager().full_screen_toggle()
+plt.show()
