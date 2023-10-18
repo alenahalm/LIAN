@@ -13,7 +13,7 @@ class Point:
             self.priority = 0
         
     def is_empty(self, image):
-        return image[self.x][self.y] != 0
+        return image[self.y][self.x] != 0
     
     def dist_to(self, p):
         return ((self.x-p.x)**2 + (self.y - p.y)**2)**0.5
