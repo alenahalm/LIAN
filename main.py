@@ -84,7 +84,7 @@ def Expand(a, delta, goal, a_m, bp, g, CLOSED):
         for close_point in CLOSED:
             if point == close_point and bp[(point.x, point.y)] == close_point:
                 continue
-        if not line_of_sight(point, a):
+        if not line_of_sight(a, point):
             continue
         # print(a, g[a], sep="<=")
         g[(point.x, point.y)] = g[(a.x, a.y)] + a.dist_to(point)
