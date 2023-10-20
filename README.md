@@ -1,5 +1,5 @@
 # LIAN
-Delta: 20
+Delta: 30
 
-Угол: 35
-![output](https://github.com/alenahalm/LIAN/assets/75882124/688d5c2b-d550-4461-85c3-bb9db76abfd2)
+Угол: 25
+![output](https://github.com/alenahalm/LIAN/assets/75882124/906772d9-fb4c-4cc2-9e89-2aab4097036a)
