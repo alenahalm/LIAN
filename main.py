@@ -1,6 +1,4 @@
 import cv2 as cv
-from skimage.measure import label, regionprops
-from skimage.morphology import binary_closing, binary_erosion, binary_dilation, binary_opening
 import matplotlib.pyplot as plt
 import numpy as np
 from point import Point
@@ -27,9 +25,7 @@ def angle_between_vectors(a1, a2, b1, b2):
     a = a1.dist_to(a2)
     b = b1.dist_to(b2)
     if a*b == 0:
-        # print(a1, a2, b1, b2)
         return 360
-        # 165, 305 165, 305 165, 305 170, 305
     else:
         cos = round(ab / (a * b), 5)
         return math.acos(cos)*180/math.pi
@@ -48,7 +44,6 @@ def line_of_sight(a, b):
     points.append(Point(x, y))
     
     while (x < b.x): 
-        
         x=x+1
         
         if(d < 0): 
@@ -66,7 +61,7 @@ def line_of_sight(a, b):
 
     return True
 
-def Expand(a, delta, goal, a_m, bp, g, CLOSED):
+def expand(a, delta, goal, a_m, bp, g, CLOSED):
 
     global image
 
@@ -107,7 +102,6 @@ def midpoint(point: Point, r: int):
     P = 1 - r 
 
     while x > y:
-	
         y += 1
         if P <= 0: 
             P = P + 2 * y + 1
@@ -150,7 +144,6 @@ def LIAN(start, end, delta, a_m):
     while len(OPEN) > 0:
         a = sorted(OPEN, key=lambda x: x.priority)[0]
         OPEN.remove(a)
-        
         if a == end:
             print("Path found!")
             bp[(a.x, a.y)] = current_point
@@ -161,23 +154,24 @@ def LIAN(start, end, delta, a_m):
                 cur_point = bp[(cur_point.x, cur_point.y)]
             path.append(start)
             path.reverse()
-            return bp
+            return bp, g
 
         CLOSE.append(a)
         if current_point != a:
             bp[(a.x, a.y)] = current_point
-        OPEN.extend(Expand(a, delta, end, a_m, bp, g, CLOSE))
+        for point in expand(a, delta, end, a_m, bp, g, CLOSE):
+            if point not in OPEN:
+                OPEN.append(point)
         current_point = a
 
-    
     print("Path not found :(")
 
 
-path = LIAN(start, end, 20, 25)
+path, dist = LIAN(start, end, 20, 35)
 print(len(path))
 copy = image.copy()
 for x, y in path:
     copy = cv.circle(copy, (x, y), 5, (127,127,127), -1)
 plt.imshow(copy)
-plt.get_current_fig_manager().full_screen_toggle()
+# plt.get_current_fig_manager().full_screen_toggle()
 plt.show()
