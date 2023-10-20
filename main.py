@@ -16,6 +16,9 @@ Point.goal = end
 start = Point(int(X[0]), int(Y[0]))
 image = np.array(gray)
 
+copy = image.copy()
+
+
 def angle_between_vectors(a1, a2, b1, b2):
     ax = a2.x - a1.x
     ay = a2.y - a1.y 
@@ -86,7 +89,7 @@ def expand(a, delta, goal, a_m, bp, g, CLOSED):
     return open
 
 def midpoint(point: Point, r: int):
-
+    global copy
     points = []
     x_centre = point.x
     y_centre = point.y
@@ -95,9 +98,9 @@ def midpoint(point: Point, r: int):
     y = 0
     points.append(Point(x + x_centre, y + y_centre))
     if r > 0:
-        points.append(Point(x + x_centre, -y + y_centre))
+        points.append(Point(-x + x_centre, -y + y_centre))
         points.append(Point(y + x_centre, x + y_centre))
-        points.append(Point(-y + x_centre, x + y_centre))
+        points.append(Point(-y + x_centre, -x + y_centre))
 	
     P = 1 - r 
 
@@ -139,11 +142,13 @@ def LIAN(start, end, delta, a_m):
 
     current_point = None
 
-    OPEN.append(start)
-
+    OPEN.append((start, None))
+    global copy
     while len(OPEN) > 0:
-        a = sorted(OPEN, key=lambda x: x.priority)[0]
+        a = sorted(OPEN, key=lambda x: x[0].priority)[0]
         OPEN.remove(a)
+        current_point = a[1]
+        a = a[0]
         if a == end:
             print("Path found!")
             bp[(a.x, a.y)] = current_point
@@ -154,24 +159,33 @@ def LIAN(start, end, delta, a_m):
                 cur_point = bp[(cur_point.x, cur_point.y)]
             path.append(start)
             path.reverse()
-            return bp, g
+            return path, bp, g
+        
+        if a not in CLOSE:
+            CLOSE.append(a)
 
-        CLOSE.append(a)
         if current_point != a:
             bp[(a.x, a.y)] = current_point
-        for point in expand(a, delta, end, a_m, bp, g, CLOSE):
-            if point not in OPEN:
-                OPEN.append(point)
-        current_point = a
+
+        exp = expand(a, delta, end, a_m, bp, g, CLOSE)
+        for point in exp:
+            if len([i for i in OPEN if i[0] == point]) == 0:
+                OPEN.append((point, a))
 
     print("Path not found :(")
+    return [], bp, g
+    
 
 
-path, dist = LIAN(start, end, 20, 35)
-print(len(path))
-copy = image.copy()
-for x, y in path:
-    copy = cv.circle(copy, (x, y), 5, (127,127,127), -1)
+path, bp, dist = LIAN(start, end, 30, 25)
+
+for x, y in bp:
+    copy = cv.circle(copy, (x, y), 5, (150, 150, 150), -1)
+
+for p in path:
+    copy = cv.circle(copy, (p.x, p.y), 1, (50, 50, 50), -1)
+
+
+
 plt.imshow(copy)
-# plt.get_current_fig_manager().full_screen_toggle()
 plt.show()
