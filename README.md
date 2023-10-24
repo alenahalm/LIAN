@@ -6,6 +6,8 @@ Delta: 5
 50831 итераций
 
 Время работы: 7.4261 часа
+
+https://youtu.be/DmTc1h1lit0
 ![lian5_25](https://github.com/alenahalm/LIAN/assets/75882124/586702fa-1c53-4116-b3bb-da497a7bd564)
 
 Delta: 15
