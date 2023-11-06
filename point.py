@@ -1,29 +1,46 @@
 
+# coordinates of a pixel
+class Cell:
 
-class Point:
-
-    goal = None
-
-    def __init__(self, x=0, y=0, priority=100) -> None:
-        self.x = x 
+    def __init__(self, x, y) -> None:
+        self.x = x
         self.y = y
-        if priority == 100:
-            self.priority = self.dist_to(Point.goal)
-        else: 
-            self.priority = 0
-        
-    def is_empty(self, image):
-        return image[self.y][self.x] != 0
+
+    def index(self) -> tuple:
+        return (self.x, self.y)
     
-    def dist_to(self, p):
-        return ((self.x-p.x)**2 + (self.y - p.y)**2)**0.5
+    def dist(self, p) -> float:
+        return ((self.x - p.x) ** 2 + (self.y - p.y) ** 2) ** 0.5
     
     def __eq__(self, __value: object) -> bool:
-        if __value is None:
-            return False
         return self.x == __value.x and self.y == __value.y
-    # def eq(self, p):
-    #     return self.x == p.x and self.y == p.y
+    
+    def is_traversable(self, image):
+        x, y = image.shape
+        if self.y >= x or self.x >= y:
+            return False
+        return image[self.y][self.x] != 0
 
-    def __str__(self) -> str:
-        return f"{self.x}, {self.y}"
+
+# содержит информацию о текущей Cell, расстояние от старта и родитель Node
+class Node:
+    def __init__(self, cell: Cell, g: int, parent) -> None:
+        assert isinstance(parent, Node) or parent is None
+        self.cell = cell
+        self.g = g
+        self.parent = parent
+
+# Эвристика
+    def h_score(self, goal: Cell):
+        return self.cell.dist(goal)
+
+# приоритет Node
+    def f_value(self, goal: Cell) -> float:
+        return self.g + self.h_score(goal)
+    
+    def __eq__(self, obj) -> bool:
+        if isinstance(obj, Node):
+            return self.cell == obj.cell and self.g == obj.g and self.parent.cell == obj.parent.cell
+        
+        if isinstance(obj, Cell):
+            return self.cell == obj
