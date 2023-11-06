@@ -1,40 +1,30 @@
 import cv2 as cv
-import matplotlib.pyplot as plt
 import numpy as np
-from point import Point
 import time
-from LIAN import LIAN
+import matplotlib.pyplot as plt
+from lian import LIAN
+from point import Cell, Node
 
-
-image = cv.imread('./map.png')
-gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-gray[gray > 200] = 255
-gray[gray != 255] = 0
+image = cv.imread('map.png')
+gr = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+gr[gr > 200] = 255
+gr[gr != 255] = 0
 
 Y, X = np.loadtxt('points.txt', unpack=True)
 
-end = Point(int(X[1]), int(Y[1]), 0)
-Point.goal = end
-start = Point(int(X[0]), int(Y[0]))
-image = np.array(gray)
+goal = Cell(int(X[1]), int(Y[1]))
+start = Cell(int(X[0]), int(Y[0]))
 
-copy = image.copy()
-
-
+image = np.array(gr)
 
 t = time.time()
 
-path, bp, dist = LIAN(start, end, 15, 13, image)
+path = LIAN(image, start, goal, 5, 25)
+
+for i in path:
+    image = cv.circle(image, i.index(), 1, (50, 50, 50), -1)
+
+plt.imshow(image)
+plt.show()
 
 print('----', time.time()-t, 'seconds ----')
-
-for x, y in bp:
-    copy = cv.circle(copy, (x, y), 5, (150, 150, 150), -1)
-
-for p in path:
-    copy = cv.circle(copy, (p.x, p.y), 1, (50, 50, 50), -1)
-
-
-
-plt.imshow(copy)
-plt.show()
