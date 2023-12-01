@@ -3,20 +3,4 @@ Delta: 5
 
 Угол: 25
 
-71494 итераций
-
-Время работы: 3.295 часа
-
-![lian5_25](https://github.com/alenahalm/LIAN/assets/75882124/586702fa-1c53-4116-b3bb-da497a7bd564)
-
-Delta: 15
-
-Угол: 13
-
-50831 итераций
-
-Время работы: 7.4261 часа
-
-https://youtu.be/DmTc1h1lit0
-
-![lian15_13](https://github.com/alenahalm/LIAN/assets/75882124/c9dd4237-a438-4a62-a824-81d95ee07abf)
+![result1](https://github.com/alenahalm/LIAN/assets/75882124/79fa9dd8-4fea-4e1d-8458-0458333dbd2d)
