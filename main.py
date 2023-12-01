@@ -19,7 +19,7 @@ image = np.array(gr)
 
 t = time.time()
 
-path = LIAN(image, start, goal, 5, 25)
+path = Lian(image, start, goal, 5, 25)
 
 for i in path:
     image = cv.circle(image, i.index(), 1, (50, 50, 50), -1)
