@@ -1,170 +1,176 @@
 import cv2 as cv
-import numpy as np
 import math
+from time import time
+import numpy as np
+from queue import PriorityQueue
 from point import Cell, Node
 
 
-class Lian:
+def angle_between_vectors(a1: Cell, a2: Cell, b1: Cell, b2: Cell) -> float:
+    ax = a2.x - a1.x
+    ay = a2.y - a1.y
+    bx = b2.x - b1.x
+    by = b2.y - b1.y
+    ab = ax * bx + ay * by
+    a = a1.dist(a2)
+    b = b1.dist(b2)
+    if a * b == 0:
+        return 360
+    else:
+        cos = round(ab / (a * b), 5)
+        return math.acos(cos) * 180 / math.pi
 
-    def __init__(self, image: np.ndarray, start: Cell, goal: Cell, delta: int, a_m: int) -> None:
-        self.image = image
-        self.start = start
-        self.goal = goal
-        self.delta = delta
-        self.a_m = a_m
-        self.OPEN = [Node(start, 0, None)]
-        self.CLOSED = []
-        self.nodes = []
 
-    # midpoint
-    def circle_successors(self, a: Node):
-        points = []
-        x_centre = a.cell.x
-        y_centre = a.cell.y
+def intermediates(image: np.ndarray, a: Cell, b: Cell):
 
-        x = self.delta
-        y = 0
+    nb_points = int(a.dist(b))
+
+    x_spacing = (b.x - a.x) / (nb_points + 1)
+    y_spacing = (b.y - a.y) / (nb_points + 1)
+
+    points = [[int(a.x + i * x_spacing), int(a.y + i * y_spacing)]
+              for i in range(1, nb_points+1)]
+    check_cell = Cell(0, 0)
+    for p in points:
+        check_cell.x = p[0]
+        check_cell.y = p[1]
+        if not check_cell.is_traversable(image):
+            return False
+    return True
+
+
+def circle_successors(a: Node, r: int) -> list[Node]:
+    x_centre = a.cell.x
+    y_centre = a.cell.y
+
+    x = r
+    y = 0
+    points = [Cell(x + x_centre, y + y_centre)]
+    if r > 0:
+        points.append(Cell(-x + x_centre, -y + y_centre))
+        points.append(Cell(y + x_centre, x + y_centre))
+        points.append(Cell(-y + x_centre, -x + y_centre))
+
+    P = 1 - r
+
+    while x > y:
+        y += 1
+        if P <= 0:
+            P = P + 2 * y + 1
+
+        else:
+            x -= 1
+            P = P + 2 * y - 2 * x + 1
+
+        if (x < y):
+            break
+
         points.append(Cell(x + x_centre, y + y_centre))
-        if self.delta > 0:
-            points.append(Cell(-x + x_centre, -y + y_centre))
+        points.append(Cell(-x + x_centre, y + y_centre))
+        points.append(Cell(x + x_centre, -y + y_centre))
+        points.append(Cell(-x + x_centre, -y + y_centre))
+
+        if x != y:
             points.append(Cell(y + x_centre, x + y_centre))
+            points.append(Cell(-y + x_centre, x + y_centre))
+            points.append(Cell(y + x_centre, -x + y_centre))
             points.append(Cell(-y + x_centre, -x + y_centre))
 
-        P = 1 - self.delta
+    nodes = []
+    for p in points:
+        nodes.append(Node(p, a.g + p.dist(a.cell), a))
 
-        while x > y:
-            y += 1
-            if P <= 0:
-                P = P + 2 * y + 1
+    return nodes
 
-            else:
-                x -= 1
-                P = P + 2 * y - 2 * x + 1
 
-            if (x < y):
+def expand(image: np.ndarray, a: Node, delta: int, a_m: int, CLOSE: list[Node], goal: Cell, nodes: dict) -> list[Node]:
+
+    open = []
+
+    SUCC = circle_successors(a, delta)
+    if a.cell.dist(goal) < delta:
+        SUCC.append(
+            Node(goal, a.g + a.cell.dist(goal), a)
+        )
+
+    for child in SUCC:
+        if not child.cell.is_traversable(image):
+            continue
+
+        if a.parent is not None and angle_between_vectors(a.parent.cell, a.cell, a.cell, child.cell) > a_m:
+            continue
+
+        if not intermediates(image, a.cell, child.cell):
+            continue
+
+        was_checked = False
+        for cl in CLOSE:
+            if child == cl and child.parent == cl.parent:
+                was_checked = True
                 break
-
-            points.append(Cell(x + x_centre, y + y_centre))
-            points.append(Cell(-x + x_centre, y + y_centre))
-            points.append(Cell(x + x_centre, -y + y_centre))
-            points.append(Cell(-x + x_centre, -y + y_centre))
-
-            if x != y:
-                points.append(Cell(y + x_centre, x + y_centre))
-                points.append(Cell(-y + x_centre, x + y_centre))
-                points.append(Cell(y + x_centre, -x + y_centre))
-                points.append(Cell(-y + x_centre, -x + y_centre))
-
-        nodes = []
-        for p in points:
-            nodes.append(Node(p, a.g + a.cell.dist(p), a))
-
-        return nodes
-
-    # проверка угла
-    def angle_between_vectors(self, a1: Cell, a2: Cell, b1: Cell, b2: Cell) -> float:
-        ax = a2.x - a1.x
-        ay = a2.y - a1.y
-        bx = b2.x - b1.x
-        by = b2.y - b1.y
-        ab = ax * bx + ay * by
-        a = a1.dist(a2)
-        b = b1.dist(b2)
-        if a * b == 0:
-            return 360
+        if was_checked:
+            continue
+        if child.index() in nodes:
+            if child.g < nodes[child.index()].g:
+                nodes[child.index()] = child
+                open.append(child)
         else:
-            cos = round(ab / (a * b), 5)
-            return math.acos(cos) * 180 / math.pi
+            nodes[child.index()] = child
+            open.append(child)
+    return open
 
-    # есть ли преграда между точками
-    def intermediates(self, a: Cell, b: Cell):
 
-        nb_points = int(a.dist(b))
+def Lian(image: np.ndarray, start: Cell, goal: Cell, delta: int, a_m: int) -> list[Node]:
+    start_node = Node(start, 0, None)
+    OPEN = PriorityQueue()
+    OPEN.put((0, start_node))
+    CLOSE = [start_node]
+    CLOSE.remove(start_node)
 
-        x_spacing = (b.x - a.x) / (nb_points + 1)
-        y_spacing = (b.y - a.y) / (nb_points + 1)
+    nodes = {}
 
-        points = [[int(a.x + i * x_spacing), int(a.y + i * y_spacing)]
-                  for i in range(1, nb_points+1)]
-        check_cell = Cell(0, 0)
-        for p in points:
-            check_cell.x = p[0]
-            check_cell.y = p[1]
-            if not check_cell.is_traversable(self.image):
-                return False
-        return True
+    t = time()
 
-    def lian(self):
+    c = 0
+    while not OPEN.empty():
+        a = OPEN.get()[1]
+        assert (isinstance(a, Node))
 
-        c = 0
-        while len(self.OPEN) > 0:
-            # Сортируем OPEN по сумме расстояния до старта (g) и эвристического расстояния до цели
-            # и берем нулевой элемент
-            a = sorted(self.OPEN, key=lambda x: x.g +
-                       x.cell.dist(self.goal))[0]
-            self.OPEN.remove(a)
+        if a == goal:
+            path = []
+            cur_node = a
+            while cur_node != start_node:
+                path.append(cur_node)
+                cur_node = cur_node.parent
+            path.reverse()
+            return path, a.g
 
-            if a == self.goal:
-                # восстанавливаем путь
-                path = []
-                cur_node = a
-                while cur_node != Node(self.start, 0, None):
-                    path.append(cur_node)
-                    cur_node = cur_node.parent
-                path.reverse()
-                print("Path found!")
-                return path
+        exp = expand(image, a, delta, a_m, CLOSE, goal, nodes)
+        for e in exp:
+            OPEN.put((e.g + e.cell.dist(goal), e))
 
-            #  добавляем в рассмотренные
-            if a not in self.CLOSED:
-                self.CLOSED.append(a)
+        CLOSE.append(a)
+        c += 1
+        if time() - t > 0.2:
+            copy = image.copy()
+            copy = cv.cvtColor(copy, cv.COLOR_GRAY2BGR)
+            copy = cv.putText(
+                copy, f'{c}', (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv.LINE_AA)
+            copy = cv.circle(copy, a.index(), 1, (0, 0, 255), -1)
+            copy = cv.circle(copy, goal.index(), 1, (0, 0, 255), -1)
+            for o in OPEN.queue:
+                copy = cv.circle(copy, o[1].index(), 1, (0, 125, 0), -1)
+            for cl in CLOSE:
+                copy = cv.circle(copy, cl.index(), 1, (200, 200, 200), -1)
+            cur_node = a
+            while cur_node != start_node:
+                copy = cv.circle(copy, cur_node.index(), 1, (0, 0, 0), -1)
+                cur_node = cur_node.parent
+            copy = cv.circle(copy, a.index(), 1, (0, 0, 255), -1)
+            cv.imshow("Lian", copy)
 
-            # получаем новые точки OPEN
-            self.expand(a)
-
-        print("Path not found")
-        return []
-
-    def expand(self, a: Node):
-        # находим окружность для точки a
-        SUCC = self.circle_successors(a)
-
-        # если цель ближе, чем delta, то добавляем в потенциальные
-        if a.cell.dist(self.goal) < self.delta:
-            SUCC.append(Node(self.goal, a.g + a.cell.dist(self.goal), a))
-
-        for s in SUCC:
-            assert (isinstance(s, Node))
-
-            # не рассматриваем точки с припятствием
-            if not s.cell.is_traversable(self.image):
-                continue
-
-            # если у [a] в пути есть родитель, проверяем угол поворота.
-            if a.parent is not None and self.angle_between_vectors(a.parent.cell, a.cell, a.cell, s.cell) > self.a_m:
-                continue
-
-            # проходимся по рассмотренным точкам и сравниваем с потенциальной
-            was_checked = False
-            for cp in self.CLOSED:
-                assert (isinstance(cp, Node))
-                # если точка уже рассмотрена и у них один родитель
-                # отбрасываем точку
-                if s == cp and s.parent == cp.parent:
-                    was_checked = True
-                    break
-            if was_checked:
-                continue
-
-            # проверка на препятствие между точками
-            if not self.intermediates(a.cell, s.cell):
-                continue
-
-            # добавляем в OPEN
-            if s.index() in self.nodes:
-                if s.g < self.nodes[s.index()].g:
-                    self.nodes[s.index()] = s
-                    self.OPEN.append(s)
-            else:
-                self.nodes[s.index()] = s
-                self.OPEN.append(s)
+            k = cv.waitKey(1)
+            if k > 0 and chr(k) == 'd':
+                break
+            t = time()
+    return [], 0
